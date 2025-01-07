@@ -1,0 +1,16 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../../thebot"
+		},
+		{
+			"path": "../wbi"
+		},
+		{
+			"path": "../egochain-marketplace"
+		}
+	]
+}

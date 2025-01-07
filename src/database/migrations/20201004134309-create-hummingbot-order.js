@@ -1,0 +1,53 @@
+"use strict";
+module.exports = {
+  up: (queryInterface, Sequelize) =>
+    queryInterface.createTable("Horder", {
+      id: {
+        allowNull: false,
+        autoIncrement: true,
+        primaryKey: true,
+        type: Sequelize.INTEGER,
+      },
+      price:  {
+        allowNull: false,
+        type: Sequelize.DECIMAL(65,30),
+      },
+      amount:  {
+        allowNull: false,
+        type: Sequelize.DECIMAL(65,30),
+      },
+      symbol: {
+        allowNull: false,
+        type: Sequelize.STRING,
+      },
+      side: {
+        allowNull: false,
+        type: Sequelize.STRING,
+      },
+      newClientOrderId: {
+        allowNull: false,
+        type: Sequelize.STRING,
+      },
+      lapiKey: {
+        allowNull: false,
+        type: Sequelize.STRING,
+      },
+      status: {
+        allowNull: false,
+        type: Sequelize.STRING,
+      },
+      
+      createdAt: {
+        allowNull: false,
+        type: Sequelize.DATE,
+        defaultValue: new Date(),
+      },
+      updatedAt: {
+        allowNull: false,
+        type: Sequelize.DATE,
+        defaultValue: new Date(),
+      },
+    }),
+
+  down: (queryInterface) => queryInterface.dropTable("Horder"),
+};

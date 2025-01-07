@@ -1,0 +1,32 @@
+const trader = await Trader.findOne({where: {apikey: lapiKey}});
+
+        if(trader){
+          let multiplier = 1000000000000000000;
+          let prices = [(parseFloat(req.body.price) * multiplier).toString()];
+          let ticker = req.body.symbol;
+          let amount = parseFloat(req.body.quantity) * multiplier;
+          let isSale = req.body.side == "SELL" ? true : false;
+          let uuid = req.body.newClientOrderId;
+          
+          const signer = new ethers.Wallet(trader.key, providerRPC);
+          const contractRPC = new ethers.Contract(process.env.EXCHANGE_CONTRACT, ABI_DATA,signer);
+          const nonce = await providerRPC.getTransactionCount(trader, "pending");
+          const tx = await contractRPC.marketOrderTrade(prices,amount.toString(),isSale,ticker,uuid, {
+
+            gasLimit: 3000000,
+            nonce:  nonce,// Optional, specify gas limit
+          });
+            
+          await tx.wait();
+          return res.status(200).json(
+            {
+              "symbol": ticker,
+              "orderId": Date.now(),
+              "orderListId": -1, // Unless it's part of an order list, value will be -1
+              "clientOrderId":uuid,
+              "transactTime": Date.now()
+            }
+          );
+
+          
+        }
