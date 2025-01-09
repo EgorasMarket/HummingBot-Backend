@@ -50,7 +50,7 @@ let systemController = {
 //      appEventEmitter.emit("BotPlacedOrder", {ticker: "EPR-EGOD", newPrice:0.345,side: "BUY"});
    
 let pendings = await Horder.findAll();
-console.log(pendings);
+//console.log(pendings);
 
 for (let index = 0; index < pendings.length; index++) {
   const element = pendings[index];
