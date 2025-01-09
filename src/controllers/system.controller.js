@@ -43,13 +43,65 @@ let systemController = {
   spin: async (req, res, next) => {
     try {
 
- await createOrUpdateBotLastPrice({ticker: "EPR-EGOD", newPrice:0.345,side: "BUY"});
+//  await createOrUpdateBotLastPrice({ticker: "EPR-EGOD", newPrice:0.345,side: "BUY"});
     
 
- // appEventEmitter.emit("CheckOrderBookAndMakeSureThereIsEnoughOrderOnTheSide", {ticker: "EPR-EGOD", newPrice:0.344,side: "SELL"});
-     appEventEmitter.emit("BotPlacedOrder", {ticker: "EPR-EGOD", newPrice:0.345,side: "BUY"});
+//  // appEventEmitter.emit("CheckOrderBookAndMakeSureThereIsEnoughOrderOnTheSide", {ticker: "EPR-EGOD", newPrice:0.344,side: "SELL"});
+//      appEventEmitter.emit("BotPlacedOrder", {ticker: "EPR-EGOD", newPrice:0.345,side: "BUY"});
    
-    
+let pendings = await Horder.findAll();
+console.log(pendings);
+
+for (let index = 0; index < pendings.length; index++) {
+  const element = pendings[index];
+  if(element.status == "CANCELLED"){
+    const trader = await Trader.findOne({where: {apikey: "big70"}});
+    if(trader){
+
+      let price = element.price;
+      let multiplier = 1000000000000000000;
+      let prices = (parseFloat(price) * multiplier).toString();
+      let uuid = element.newClientOrderId;
+      let isSale = element.side == "SELL" ? 1 : 0;
+      let ticker =element.symbol;
+    const signer = new ethers.Wallet(trader.key, providerRPC);
+          const contractRPC = new ethers.Contract(process.env.EXCHANGE_CONTRACT, ABI_DATA,signer);
+          const nonce = await providerRPC.getTransactionCount(trader.address, "pending");
+          const tx = await contractRPC.cancelOrder(ticker,prices.toString(),isSale,uuid, {
+            gasLimit: 3000000,
+            nonce:  nonce,// Optional, specify gas limit
+          });
+          await Horder.destroy({where:{id:element.id}});
+    //       console.log(tx);
+  }
+
+  } 
+    else if(element.status == "OPEN"){
+      const trader = await Trader.findOne({where: {apikey: "big70"}});
+      if(trader){
+    let price = parseFloat(element.price);
+    let amount = parseFloat(element.quantity);
+   let side = element.side == "SELL" ? true : false;
+     
+
+   let multiplier = 1000000000000000000;
+        let prices = [(parseFloat(price) * multiplier).toString()];
+         amount = parseFloat(amount) * multiplier;
+       const signer = new ethers.Wallet(trader.key, providerRPC);
+       const contractRPC = new ethers.Contract(process.env.EXCHANGE_CONTRACT, ABI_DATA,signer);
+       const nonce = await providerRPC.getTransactionCount(trader.address, "pending");
+       const tx = await contractRPC.marketOrderTrade(prices,amount.toString(),side,element.symbol,element.newClientOrderId, {
+         gasLimit: 3000000,
+         nonce:  nonce,// Optional, specify gas limit
+       });
+       await Horder.destroy({where:{id:element.id}});
+  }
+  console.log();
+}else{
+  await Horder.destroy({where:{id:element.id}});
+}
+}
+
 
 
       return res.status(200).json({});
@@ -239,7 +291,7 @@ let systemController = {
           let isSale = order.isSale == true ? 1 : 0;
           orderSide = order.isSale == true ? "SELL" : "BUY";
           let uuid = req.query.origClientOrderId;
-          
+          const trader = await Trader.findOne({where: {apikey: lapiKey}});
           const signer = new ethers.Wallet(trader.key, providerRPC);
           const contractRPC = new ethers.Contract(process.env.EXCHANGE_CONTRACT, ABI_DATA,signer);
           const nonce = await providerRPC.getTransactionCount(trader.address, "pending");

@@ -1,7 +1,7 @@
 const EventEmitter = require('events');
 const { default: BotLastPrice } = require('../models/BotLastPrice');
 const { default: TraderLastPrice } = require('../models/TraderLastPrice');
-const { generateDescendingPrices, splitAmountIntoFortyParts } = require('./depth');
+const { generateDescendingPrices, splitAmountIntoFortyParts, createOrUpdateTraderLastPrice } = require('./depth');
 const ethers = require("ethers");
 const { ABI_DATA } = require('./abi');
 const { default: AssetAdded } = require('../models/AssetAdded');
@@ -45,6 +45,8 @@ appEventEmitter.on('error', (err) => {
                         validate: true, // Validate each record before insertion
                         ignoreDuplicates: true, // Skip records that cause unique constraint errors
                       });
+                      await createOrUpdateTraderLastPrice({ticker: data.ticker, newPrice:data.newPrice,side: data.side})
+
                 }
                 
             }
@@ -67,6 +69,7 @@ appEventEmitter.on('error', (err) => {
                         validate: true, // Validate each record before insertion
                         ignoreDuplicates: true, // Skip records that cause unique constraint errors
                       });
+                      await createOrUpdateTraderLastPrice({ticker: data.ticker, newPrice:data.newPrice,side: data.side})
 
                   
                 }
@@ -114,6 +117,8 @@ appEventEmitter.on('CheckOrderBookAndMakeTheBestDecision', async (data)  => {
             validate: true, // Validate each record before insertion
             ignoreDuplicates: true, // Skip records that cause unique constraint errors
           });
+          await createOrUpdateTraderLastPrice({ticker: data.ticker, newPrice:data.newPrice,side: data.side})
+
      }
     }
     } catch (error) {
@@ -156,6 +161,8 @@ appEventEmitter.on('CheckOrderBookAndMakeSureThereIsEnoughOrderOnTheSide', async
                             validate: true, // Validate each record before insertion
                             ignoreDuplicates: true, // Skip records that cause unique constraint errors
                           });
+                          await createOrUpdateTraderLastPrice({ticker: data.ticker, newPrice:data.newPrice,side: data.side})
+                           
                     }
                     
                 }
@@ -178,6 +185,8 @@ appEventEmitter.on('CheckOrderBookAndMakeSureThereIsEnoughOrderOnTheSide', async
                             validate: true, // Validate each record before insertion
                             ignoreDuplicates: true, // Skip records that cause unique constraint errors
                           });
+                          await createOrUpdateTraderLastPrice({ticker: data.ticker, newPrice:data.newPrice,side: data.side})
+
     
                       
                     }

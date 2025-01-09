@@ -46,15 +46,18 @@ const contract = new ethers.Contract(process.env.EXCHANGE_CONTRACT,ABI_DATA, pro
 
  
  runTasks();
-//  const runGenerateAmountTask = async () => {
-//   try {
-
-//   setTimeout(runTasks, 3000);
-//   } catch (error) {
+ const runGenerateAmountTask = async () => {
+  try {
+    const orderHolder = await fetch(`http://localhost:${process.env.SERVER_PORT}/api/v3/blockchain/spin`);
+   
     
-//   }
-//  }
-//  runGenerateAmountTask();
+  setTimeout(runGenerateAmountTask, 3000);
+  } catch (error) {
+    console.log(error);
+    
+  }
+ }
+ runGenerateAmountTask();
 
 let blockController = {
   
