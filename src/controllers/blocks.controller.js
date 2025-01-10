@@ -24,13 +24,21 @@ const providerRPC = new ethers.JsonRpcProvider(process.env.WS_HTTP_ADDRESS);
 const contract = new ethers.Contract(process.env.EXCHANGE_CONTRACT,ABI_DATA, provider);
  const contractRPC = new ethers.Contract(process.env.EXCHANGE_CONTRACT, ABI_DATA, providerRPC);
  const contractRPCOrderBook = new ethers.Contract(process.env.EXCHANGE_ORDER_BOOK_CONTRACT, ORDER_BOOK_ABI, providerRPC);
+ let local = "";
 
+ if(process.env.NODE_ENV == "production"){
+   local = "http://146.190.142.186";
+ }else{
+  local = "http://localhost";
+
+ }
  const runTasks = async () => {
-  try {
-   const orderPlaced = await fetch(`http://localhost:${process.env.SERVER_PORT}/past/events?event=OrderPlaced`);
   
-    const trade = await fetch(`http://localhost:${process.env.SERVER_PORT}/past/events?event=Trade`);
-   const orderCanceled = await fetch(`http://localhost:${process.env.SERVER_PORT}/past/events?event=OrderCanceled`);
+  try {
+   const orderPlaced = await fetch(`${local}:${process.env.SERVER_PORT}/past/events?event=OrderPlaced`);
+  
+    const trade = await fetch(`${local}:${process.env.SERVER_PORT}/past/events?event=Trade`);
+   const orderCanceled = await fetch(`${local}:${process.env.SERVER_PORT}/past/events?event=OrderCanceled`);
 
   // const orderPlacedData = await orderPlaced.json();
   } catch (error) {
@@ -45,7 +53,7 @@ const contract = new ethers.Contract(process.env.EXCHANGE_CONTRACT,ABI_DATA, pro
  runTasks();
  const runGenerateAmountTask = async () => {
   try {
-    const orderHolder = await fetch(`http://localhost:${process.env.SERVER_PORT}/api/v3/blockchain/spin`);
+    const orderHolder = await fetch(`${local}:${process.env.SERVER_PORT}/api/v3/blockchain/spin`);
    
     
   setTimeout(runGenerateAmountTask, 3000);
@@ -57,7 +65,7 @@ const contract = new ethers.Contract(process.env.EXCHANGE_CONTRACT,ABI_DATA, pro
 
  const runOrdersEPREGOTask = async () => {
   try {
-    const orderHolder = await fetch(`http://localhost:${process.env.SERVER_PORT}/api/v3/depth?symbol=EPR-EGOD&limit=1000`);
+    const orderHolder = await fetch(`${local}:${process.env.SERVER_PORT}/api/v3/depth?symbol=EPR-EGOD&limit=1000`);
     const orderHolderData = await orderHolder.json();
     
     let bidPrices = [];
