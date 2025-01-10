@@ -12,7 +12,7 @@ const { Op, Sequelize } = require('sequelize');
 const ethers = require("ethers");
 require('dotenv/config');
 import databaseConfig from "../config/database";
-import { createOrUpdateBotLastPrice, generateDescendingPrices, generatePayload, splitAmountIntoFortyParts } from '../utils/depth';
+import { createOrUpdateBotLastPrice, generateDescendingPrices, generatePayload, getMiddleNumber, splitAmountIntoFortyParts } from '../utils/depth';
 import { v4 } from 'uuid';
 import Horder from '../models/Horder';
 import { ORDER_BOOK_ABI } from '../utils/orderbookabi';
@@ -27,24 +27,21 @@ const contract = new ethers.Contract(process.env.EXCHANGE_CONTRACT,ABI_DATA, pro
 
  const runTasks = async () => {
   try {
-    // console.log("Running every 3 seconds", Date.now());
-  const orderPlaced = await fetch(`http://localhost:${process.env.SERVER_PORT}/past/events?event=OrderPlaced`);
-
-  const trade = await fetch(`http://localhost:${process.env.SERVER_PORT}/past/events?event=Trade`);
-  const orderCanceled = await fetch(`http://localhost:${process.env.SERVER_PORT}/past/events?event=OrderCanceled`);
+   const orderPlaced = await fetch(`http://localhost:${process.env.SERVER_PORT}/past/events?event=OrderPlaced`);
   
-  const orderPlacedData = await orderPlaced.json();
-  const tradeData = await trade.json();
-  const orderCanceledData = await orderCanceled.json();
+    const trade = await fetch(`http://localhost:${process.env.SERVER_PORT}/past/events?event=Trade`);
+   const orderCanceled = await fetch(`http://localhost:${process.env.SERVER_PORT}/past/events?event=OrderCanceled`);
+
+  // const orderPlacedData = await orderPlaced.json();
   } catch (error) {
     console.log(error);
   }
-
   setTimeout(runTasks, 3000);
-
  }
 
  
+
+
  runTasks();
  const runGenerateAmountTask = async () => {
   try {
@@ -57,7 +54,40 @@ const contract = new ethers.Contract(process.env.EXCHANGE_CONTRACT,ABI_DATA, pro
     
   }
  }
- runGenerateAmountTask();
+
+ const runOrdersEPREGOTask = async () => {
+  try {
+    const orderHolder = await fetch(`http://localhost:${process.env.SERVER_PORT}/api/v3/depth?symbol=EPR-EGOD&limit=1000`);
+    const orderHolderData = await orderHolder.json();
+    
+    let bidPrices = [];
+    let askPrices = [];
+    for (let index = 0; index < orderHolderData.bids.length; index++) {
+      const element = orderHolderData.bids[index];
+      bidPrices.push(parseFloat(element[0]));
+    }
+    for (let y = 0; y < orderHolderData.asks.length; y++) {
+      const element = orderHolderData.asks[y];
+      askPrices.push(parseFloat(element[0]));
+    }
+   let bidmid = await getMiddleNumber(bidPrices);
+   let askmid =  await getMiddleNumber(askPrices);
+   await createOrUpdateBotLastPrice({ticker: "EPR-EGOD", newPrice:bidmid,side: "BUY"})
+   appEventEmitter.emit("BotPlacedOrder", {ticker: "EPR-EGOD", newPrice:bidmid,side: "BUY"});
+   await createOrUpdateBotLastPrice({ticker: "EPR-EGOD", newPrice:askmid,side: "SELL"})
+   appEventEmitter.emit("BotPlacedOrder", {ticker: "EPR-EGOD", newPrice:askmid,side: "SELL"});
+
+  setTimeout(runOrdersEPREGOTask, 15000);
+  } catch (error) {
+    console.log(error);
+    
+  }
+ }
+
+
+ //runOrdersEPREGOTask();
+
+ //runGenerateAmountTask();
 
 let blockController = {
   
@@ -87,18 +117,18 @@ let blockController = {
             const formattedDate = date.toISOString().slice(0, 19).replace('T', ' ');
      if (!orderRs) {
       if (parseFloat(numberOfShares) > parseFloat(filled)) {
-        await OrderPlaced.create({
-          isSale: isSale,
-          userAddress: userAddress,
-          value: price,
-          numberOfShares: numberOfShares,
-          orderId: index+1,
-          ticker: req.query.symbol,
-          uniqueOrderID: index+1,
-          time: formattedDate,
-          uuid: uuid,
-          filled: filled
-         });
+        // await OrderPlaced.create({
+        //   isSale: isSale,
+        //   userAddress: userAddress,
+        //   value: price,
+        //   numberOfShares: numberOfShares,
+        //   orderId: index+1,
+        //   ticker: req.query.symbol,
+        //   uniqueOrderID: index+1,
+        //   time: formattedDate,
+        //   uuid: uuid,
+        //   filled: filled
+        //  });
       }
      
 

@@ -4,8 +4,58 @@ const { formatEther } = require("ethers");
 const { default: BotLastPrice } = require("../models/BotLastPrice");
 const { default: TraderLastPrice } = require("../models/TraderLastPrice");
 const { default: Trader } = require("../models/Trader");
+const { default: Block } = require("../models/Block");
 
+async function getMiddleNumber(numbers) {
+ try {
+  if (!Array.isArray(numbers) || numbers.length === 0) {
+    throw new Error("Input must be a non-empty array of numbers.");
+  }
 
+  // Filter out non-numeric values
+  const numericValues = numbers.filter((num) => typeof num === "number" && !isNaN(num));
+
+  if (numericValues.length === 0) {
+    throw new Error("Array must contain at least one valid number.");
+  }
+
+  // Sort the array in ascending order
+  numericValues.sort((a, b) => a - b);
+
+  const middleIndex = Math.floor(numericValues.length / 2);
+
+  // Return the middle number for odd length, or the average for even length
+  if (numericValues.length % 2 !== 0) {
+    return numericValues[middleIndex];
+  } else {
+    return (numericValues[middleIndex - 1] + numericValues[middleIndex]) / 2;
+  }
+ } catch (error) {
+  console.log(error);
+ }
+}
+async function registerBlock(data) {
+  try {
+    console.log("BlockUpdate")
+    let bl = 0;
+    if(data.block_number > data.to_block){
+      bl = data.to_block;
+    }else{
+      bl = data.block_number;
+    }
+    if(data.hasEntry){
+      await Block.update({block_number:bl}, {where: {event_name: data.block_name}});
+     
+    }else{
+      await Block.create({block_number:bl, event_name: data.block_name});
+    }
+     // Find a single user
+    
+   } catch (error) {
+    console.log(error)
+   }
+  
+}
 async function generateDescendingPrices(startPrice, steps) {
   const prices = new Set();
     let currentPrice = startPrice;
@@ -106,7 +156,8 @@ async function generatePayload({ ticker, limit, value }) {
     asks: []
   };
 
- 
+
+
 
   if (value.length > 0) {
     payload.U = 1; // Set U to the first order ID
@@ -114,10 +165,10 @@ async function generatePayload({ ticker, limit, value }) {
     value.forEach((order, index) => {
       payload.lastUpdateId = value.length;
       payload.u = index+1;
-      let isSale = order[0];
-      let price = formatEther(order[2]);
-      let numberOfShares = formatEther(order[3]);
-      let filled = formatEther(order[4]);
+      let isSale = order.isSale;
+      let price = parseFloat(order.value);
+      let numberOfShares = parseFloat(order.numberOfShares);
+      let filled = parseFloat(order.filled);
 
 
       
@@ -129,14 +180,14 @@ async function generatePayload({ ticker, limit, value }) {
         parseFloat(numberOfShares).toString(),
       ];
 
-      if (isSale) {
+      if (isSale == true) {
         if (parseFloat(numberOfShares) > parseFloat(filled)) {
           payload.asks.push(entry);
           payload.a.push(entry);
         }
        
       } else {
-        if (parseFloat(numberOfShares) >parseFloat(filled)) {
+        if (parseFloat(numberOfShares) > parseFloat(filled)) {
           payload.bids.push(entry);
          payload.b.push(entry);
         }
@@ -148,4 +199,4 @@ async function generatePayload({ ticker, limit, value }) {
   return payload;
 }
 
-module.exports = { generatePayload, createOrUpdateTraderLastPrice, createOrUpdateBotLastPrice, splitAmountIntoFortyParts, generateDescendingPrices };
+module.exports = { generatePayload, createOrUpdateTraderLastPrice, createOrUpdateBotLastPrice, splitAmountIntoFortyParts, generateDescendingPrices, registerBlock, getMiddleNumber };

@@ -13,13 +13,13 @@ const { Op, Sequelize } = require('sequelize');
 const ethers = require("ethers");
 require('dotenv/config');
 import databaseConfig from "../config/database";
-import { createOrUpdateBotLastPrice, generatePayload } from '../utils/depth';
+import { createOrUpdateBotLastPrice, generatePayload, registerBlock } from '../utils/depth';
 import { v4 } from 'uuid';
 import Horder from '../models/Horder';
 import { ORDER_BOOK_ABI } from '../utils/orderbookabi';
 import { formatEther } from 'ethers';
 const provider = new ethers.WebSocketProvider(process.env.WS_RPC_ADDRESS);
-const providerRPC = new ethers.JsonRpcProvider(process.env.WS_HTTP_ADDRESS);
+const providerRPC = new ethers.JsonRpcProvider(process.env.RPC_URL);
 
 const contract = new ethers.Contract(process.env.EXCHANGE_CONTRACT,ABI_DATA, provider);
  const contractRPC = new ethers.Contract(process.env.EXCHANGE_CONTRACT, ABI_DATA, providerRPC);
@@ -80,7 +80,7 @@ for (let index = 0; index < pendings.length; index++) {
       const trader = await Trader.findOne({where: {apikey: "big70"}});
       if(trader){
     let price = parseFloat(element.price);
-    let amount = parseFloat(element.quantity);
+    let amount = parseFloat(element.amount);
    let side = element.side == "SELL" ? true : false;
      
 
@@ -130,9 +130,22 @@ for (let index = 0; index < pendings.length; index++) {
 
   depth: async (req, res, next) => {
     try {
-      
-      const value = await contractRPCOrderBook.getSymbolOrderBook(req.query.symbol);
-      
+      await OrderPlaced.destroy({
+        where: {
+          filled: {
+            [Sequelize.Op.gte]: Sequelize.col('numberOfShares'), // 'gte' stands for 'greater than or equal to'
+          },
+        },
+      });
+      const value = await OrderPlaced.findAll({
+        where: {
+          ticker: req.query.symbol,
+          numberOfShares: {
+            [Op.gt]: Sequelize.col('filled')
+          }
+        },
+        order: [['value', 'DESC']],
+      });
       const ticker = req.query.symbol;
       const limit = req.query.limit;
       const payload = await generatePayload({ ticker, limit, value});
@@ -707,6 +720,7 @@ for (let index = 0; index < pendings.length; index++) {
       }
    
       
+      
       let filter = getFilter(contract, pastEventName);
     const events = await contractRPC.queryFilter(
       filter, // Specify the event (use filters for indexed fields)
@@ -715,19 +729,122 @@ for (let index = 0; index < pendings.length; index++) {
     );
 
     if(events.length > 0){
-      events.forEach((event) => {
-        appEventEmitter.emit(pastEventName, event.args);
+    
+        for (let index = 0; index < events.length; index++) {
+          const data = events[index].args;
+          const block = events[index];
+          
+        if(pastEventName == "OrderPlaced"){
+          try {
+            const orderRs = await OrderPlaced.findOne({ where: {uuid: data[8]} });
+             if(orderRs == null){
+              const payload = {
+                isSale: data[0],
+                userAddress: data[1],
+                value: formatEther(data[2]),
+                numberOfShares: formatEther(data[3]),
+                orderId: parseInt(data[4]),
+                ticker: data[5],
+                uniqueOrderID: parseInt(data[6]),
+                time:new Date(parseInt(data[7]) * 1000),
+                uuid: data[8],
+                filled: 0
+            }
+             await OrderPlaced.create(payload);
+             await registerBlock({block_number: block.blockNumber, to_block: toBlock, block_name: pastEventName, hasEntry});
+             }
+           } catch (error) {
+              console.log(error)
+           }
+        }else if(pastEventName == "OrderCanceled"){
+          try {
+            
+             // Find a single user
+             console.log("data[8]", data[8]);
+             console.log("data[8]", data);
+             const order = await OrderPlaced.findOne({ where: { uuid: data[8]} });
+         
+             if (order) {
+               await order.destroy();
+             await registerBlock({block_number: block.blockNumber, to_block: toBlock, block_name: pastEventName, hasEntry});
+              
+             } else {
+              await registerBlock({block_number: block.blockNumber, to_block: toBlock, block_name: pastEventName, hasEntry});
+            
+             }
+           } catch (error) {
+             console.log(error);
+           }
+        }else if(pastEventName == "Trade") {
+          try {
+   
+
+  
+
+            // const orderRs = await Trade.findOne({ where: { [Op.or]: [
+            //   { sellerUuid: data[10] },
+            //   { buyerUuid: data[10] }
+            // ],
+            //  } });
+             
+        
+             let uuidToQuery = "";
+            //  console.log("CheckTradeExist", orderRs);
+            //  enum TradeType {BUY,SELL}
+            
+              if(parseInt(data[0]) == 0){
+                uuidToQuery = data[10];
+              }else {
+                uuidToQuery = data[11];
+        
+              }
+             
+              const findOrderRs = await OrderPlaced.findOne({ where: {[Op.or]: [
+                { uuid: data[10] },
+                { uuid: data[11] }
+              ],} });
+              console.log(findOrderRs);
+              let amount  = formatEther(data[6]);
+              if(findOrderRs){
+                await findOrderRs.increment('filled', { by: parseFloat(amount) });
+              }
+                
+                
+              
+              const payload = {
+                typeOfTrade: data[0],
+                seller: data[1],
+                buyer: data[2],
+                ticker: data[3],
+                createdAtOnChain: new Date(parseInt(data[4]) * 1000),
+                value: data[5],
+                numberOfShares: formatEther(data[6]),
+                orderId: parseInt(data[7]),
+                uniqueOrderID: parseInt(data[8]),
+                isMarketOrder: data[9],
+                sellerUuid: data[10],
+                buyerUuid: data[11],
+               }
+            await Trade.create(payload);
+            await registerBlock({block_number: block.blockNumber, to_block: toBlock, block_name: pastEventName, hasEntry});
+          
+            
+             
+          } catch (error) {
+             console.log(error);
+          }
+        }
+        //appEventEmitter.emit(pastEventName, event.args);
         // console.log("event:", event);
         // console.log("event.fragment.name:", event.fragment.name);
         // console.log("event.args:", event.args);
 
-     appEventEmitter.emit("BlockUpdate", {block_number: event.blockNumber, to_block: toBlock, block_name: pastEventName, hasEntry});
+     //appEventEmitter.emit("BlockUpdate", {block_number: event.blockNumber, to_block: toBlock, block_name: pastEventName, hasEntry});
 
-      });
+      }
     }else{
      let current = await provider.getBlockNumber();
-     
-     appEventEmitter.emit("BlockUpdate", {block_number: current, to_block: toBlock, block_name: pastEventName, hasEntry});
+     await registerBlock({block_number: current, to_block: toBlock, block_name: pastEventName, hasEntry});
     }
     // Process events
     

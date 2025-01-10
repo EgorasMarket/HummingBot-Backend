@@ -10,6 +10,10 @@ const { v4 } = require('uuid');
 const { default: Horder } = require('../models/Horder');
 const { default: OrderPlaced } = require('../models/OrderPlaced');
 const { Sequelize } = require('sequelize');
+const { default: Trade } = require('../models/Trade');
+const { formatEther } = require('ethers');
+const { Op, fn } = require("sequelize");
+const { default: Block } = require('../models/Block');
 require('dotenv/config');
 const providerRPC = new ethers.JsonRpcProvider(process.env.WS_HTTP_ADDRESS);
 
@@ -23,12 +27,17 @@ appEventEmitter.on('error', (err) => {
   });
 
   appEventEmitter.on('fillUpOrderBook', async (data)  => {
+    console.log("fillUpOrderBook")
    try {
     let  checkForOrder = await Horder.findOne({where: {symbol: data.ticker, side: data.side}});
     if(checkForOrder){}else{
+      
     let prices = await generateDescendingPrices(data.newPrice, 40);
+    console.log(prices)
     let findAsset = await AssetAdded.findOne({where: {ticker: data.ticker}});
+    
     if(findAsset){
+      
         if(data.side == "SELL"){
             const trader = await Trader.findOne({where: {apikey: "big70"}});
             if(trader){
@@ -80,7 +89,7 @@ appEventEmitter.on('error', (err) => {
     }
     }
    } catch (error) {
-    
+    console.log(error);
    }
     
     
@@ -208,7 +217,7 @@ appEventEmitter.on('CheckOrderBookAndMakeSureThereIsEnoughOrderOnTheSide', async
 
 
   appEventEmitter.on('BotPlacedOrder', async (data) => {
-    
+    console.log("BotPlacedOrder")
     let lastBotTradePrice = await BotLastPrice.findOne({where: {ticker: data.ticker, side: data.side}});
     
     if(lastBotTradePrice){
@@ -230,4 +239,149 @@ appEventEmitter.on('CheckOrderBookAndMakeSureThereIsEnoughOrderOnTheSide', async
     }
 
   });
+  appEventEmitter.on('BlockUpdate', async (data) => {
+    try {
+      console.log("BlockUpdate")
+      let bl = 0;
+      if(data.block_number > data.to_block){
+        bl = data.to_block;
+      }else{
+        bl = data.block_number;
+      }
+      if(data.hasEntry){
+        await Block.update({block_number:bl}, {where: {event_name: data.block_name}});
+       
+      }else{
+        await Block.create({block_number:bl, event_name: data.block_name});
+      }
+       // Find a single user
+      
+     } catch (error) {
+      console.log(error)
+     }
+  
+  });
+
+  appEventEmitter.on('OrderCanceled', async (data) => {
+    try {
+      console.log(parseInt(data[8]));
+      
+       // Find a single user
+       const order = await OrderPlaced.findOne({ where: { uuid: parseInt(data[8])} });
+   
+       if (order) {
+         await order.destroy();
+        
+       } else {
+      
+       }
+     } catch (error) {
+       console.log(error);
+     }
+ 
+});
+
+
+appEventEmitter.on('AssetAdded', async (data) => {
+  try {
+     // Find a single user
+     const order = await AssetAdded.findOne({ where: { ticker: data[0] } });
+
+     if (order == "null") {
+       await AssetAdded.create({
+        ticker: data[0],
+        tokenA: data[1],
+        tokenB: data[2],
+        initialPrice: 0,
+        tokenAName: data[4],
+        tokenBName: data[5],
+        creator: data[6],
+       });
+
+     } else {
+    
+     }
+   } catch (error) {
+    console.log(error);
+   }
+
+});
+
+appEventEmitter.on('Trade', async (data)  => {
+  try {
+   
+
+  
+
+    const orderRs = await Trade.findOne({ where: { [Op.or]: [
+      { sellerUuid: data[10] },
+      { buyerUuid: data[10] }
+    ],
+     } });
+     
+
+     let uuidToQuery = "";
+     console.log("CheckTradeExist", orderRs);
+    //  enum TradeType {BUY,SELL}
+    
+      if(parseInt(data[0]) == 0){
+        uuidToQuery = data[10];
+      }else {
+        uuidToQuery = data[11];
+
+      }
+      const findOrderRs = await OrderPlaced.findOne({ where: {uuid: uuidToQuery} });
+      
+      if(findOrderRs == null){
+        console.log("uuidToQuery", uuidToQuery);
+      }else{
+        let amount  = formatEther(data[6]);
+        findOrderRs.filled = (parseFloat(findOrderRs.filled) + amount);
+        findOrderRs.save();
+      
+      const payload = {
+        typeOfTrade: data[0],
+        seller: data[1],
+        buyer: data[2],
+        ticker: data[3],
+        createdAtOnChain: new Date(parseInt(data[4]) * 1000),
+        value: data[5],
+        numberOfShares: formatEther(data[6]),
+        orderId: parseInt(data[7]),
+        uniqueOrderID: parseInt(data[8]),
+        isMarketOrder: data[9],
+        sellerUuid: data[10],
+        buyerUuid: data[11],
+       }
+    await Trade.create(payload);
+  
+    }
+     
+  } catch (error) {
+     console.log(error);
+  }
+ });
+
+ appEventEmitter.on('OrderPlaced', async (data) => {
+  try {
+   const orderRs = await OrderPlaced.findOne({ where: {uuid: data[8]} });
+    if(orderRs == null){
+     const payload = {
+       isSale: data[0],
+       userAddress: data[1],
+       value: formatEther(data[2]),
+       numberOfShares: formatEther(data[3]),
+       orderId: parseInt(data[4]),
+       ticker: data[5],
+       uniqueOrderID: parseInt(data[6]),
+       time:new Date(parseInt(data[7]) * 1000),
+       uuid: data[8],
+       filled: 0
+   }
+    await OrderPlaced.create(payload);
+    }
+  } catch (error) {
+     console.log(error)
+  }
+ });
 module.exports = appEventEmitter;
