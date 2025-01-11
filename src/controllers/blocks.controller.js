@@ -93,9 +93,9 @@ const contract = new ethers.Contract(process.env.EXCHANGE_CONTRACT,ABI_DATA, pro
  }
 
 
- runOrdersEPREGOTask();
+ //runOrdersEPREGOTask();
 
- runGenerateAmountTask();
+ //runGenerateAmountTask();
 
 let blockController = {
   

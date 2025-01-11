@@ -19,7 +19,7 @@ import Horder from '../models/Horder';
 import { ORDER_BOOK_ABI } from '../utils/orderbookabi';
 import { formatEther } from 'ethers';
 const provider = new ethers.WebSocketProvider(process.env.WS_RPC_ADDRESS);
-const providerRPC = new ethers.JsonRpcProvider(process.env.RPC_URL);
+const providerRPC = new ethers.JsonRpcProvider(process.env.WS_HTTP_ADDRESS);
 
 const contract = new ethers.Contract(process.env.EXCHANGE_CONTRACT,ABI_DATA, provider);
  const contractRPC = new ethers.Contract(process.env.EXCHANGE_CONTRACT, ABI_DATA, providerRPC);
