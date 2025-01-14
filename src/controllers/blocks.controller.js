@@ -12,7 +12,7 @@ const { Op, Sequelize } = require('sequelize');
 const ethers = require("ethers");
 require('dotenv/config');
 import databaseConfig from "../config/database";
-import { createOrUpdateBotLastPrice, generateDescendingPrices, generatePayload, getMiddleNumber, splitAmountIntoFortyParts } from '../utils/depth';
+import { createOrUpdateBotLastPrice, generateDescendingPrices, generatePayload, getMiddleNumber, getRandomAction, splitAmountIntoFortyParts } from '../utils/depth';
 import { v4 } from 'uuid';
 import Horder from '../models/Horder';
 import { ORDER_BOOK_ABI } from '../utils/orderbookabi';
@@ -50,7 +50,7 @@ const contract = new ethers.Contract(process.env.EXCHANGE_CONTRACT,ABI_DATA, pro
  
 
 
- runTasks();
+ //runTasks();
  const runGenerateAmountTask = async () => {
   try {
     const orderHolder = await fetch(`${local}:${process.env.SERVER_PORT}/api/v3/blockchain/spin`);
@@ -92,10 +92,22 @@ const contract = new ethers.Contract(process.env.EXCHANGE_CONTRACT,ABI_DATA, pro
   }
  }
 
+ const volumeGenerator = async () => {
+  try {
+    
+   let action = await getRandomAction();
+   const orderHolder = await fetch(`${local}:${process.env.SERVER_PORT}/api/v3/prepare/and/trade?person=0x9245c49245fBa6491Dea0649Cb13ceeED568d646F199F1&type=${action}&ticker=EPR-EGOD`);
+   setTimeout(volumeGenerator, 15000);
+  } catch (error) {
+    console.log(error);
+    
+  }
+ }
 
- //runOrdersEPREGOTask();
+ volumeGenerator();
+ runOrdersEPREGOTask();
 
- //runGenerateAmountTask();
+ runGenerateAmountTask();
 
 let blockController = {
   

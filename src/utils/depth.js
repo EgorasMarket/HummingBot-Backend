@@ -6,6 +6,28 @@ const { default: TraderLastPrice } = require("../models/TraderLastPrice");
 const { default: Trader } = require("../models/Trader");
 const { default: Block } = require("../models/Block");
 
+async function getRandomAction() {
+  const actions = ["BUY", "SELL"];
+  const randomIndex = Math.floor(Math.random() * actions.length);
+  return actions[randomIndex];
+}
+
+async function generatePrice(lowestSellPrice, biggestBuyPrice) {
+  return Math.random() * (lowestSellPrice - biggestBuyPrice) + biggestBuyPrice;
+}
+async function getRandomAmount(balance, percentage = 15) {
+  if (balance <= 0 || percentage <= 0) {
+      throw new Error("Balance and percentage must be greater than 0.");
+  }
+
+  const targetAmount = (percentage / 100) * balance; // Calculate 15% of the balance
+  const variance = targetAmount * 0.2; // Allow a ±20% variance around the target
+  const min = Math.max(0, targetAmount - variance); // Ensure the minimum isn't negative
+  const max = targetAmount + variance;
+
+  return Math.random() * (max - min) + min;
+}
+
 async function getMiddleNumber(numbers) {
  try {
   if (!Array.isArray(numbers) || numbers.length === 0) {
@@ -199,4 +221,4 @@ async function generatePayload({ ticker, limit, value }) {
   return payload;
 }
 
-module.exports = { generatePayload, createOrUpdateTraderLastPrice, createOrUpdateBotLastPrice, splitAmountIntoFortyParts, generateDescendingPrices, registerBlock, getMiddleNumber };
+module.exports = {getRandomAmount, generatePayload, createOrUpdateTraderLastPrice, createOrUpdateBotLastPrice, splitAmountIntoFortyParts, generateDescendingPrices, registerBlock, getMiddleNumber, getRandomAction, generatePrice };

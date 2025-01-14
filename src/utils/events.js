@@ -27,7 +27,6 @@ appEventEmitter.on('error', (err) => {
   });
 
   appEventEmitter.on('fillUpOrderBook', async (data)  => {
-    console.log("fillUpOrderBook")
    try {
     let  checkForOrder = await Horder.findOne({where: {symbol: data.ticker, side: data.side}});
     if(checkForOrder){}else{
@@ -110,17 +109,19 @@ appEventEmitter.on('CheckOrderBookAndMakeTheBestDecision', async (data)  => {
     if(checkForOrder){}else{
         const trader = await Trader.findOne({where: {apikey: "big70"}});
         let isSale = data.side == "SELL" ? true : false;
-        const orderPlaced = await OrderPlaced.findAll({
-            where: { ticker: data.ticker, userAddress: trader.address, isSale:  isSale
-            }
-        });
+        const orderPlaced = await fetch(`https://backtest.egomart.org/web3/get-all-event-exchange-by-ticker-by-type-user?ticker=${data.ticker}&state=OPEN&user=${trader.address}&type=${data.side}&limit=1000`);
+        const orderPlacedData = await orderPlaced.json();
+
+
+     
+
       
-     if(orderPlaced.length > 0){
+     if(orderPlacedData.data.length > 0){
         let payload = [];
                        
-        for (let index = 0; index < orderPlaced.length; index++) {
-            const element = orderPlaced[index];
-            payload.push({price: element.value, amount: element.numberOfShares, symbol: data.ticker, side: data.side, newClientOrderId: element.uuid, lapiKey: "big70", status: "CANCELLED"});
+        for (let index = 0; index < orderPlacedData.data.length; index++) {
+            const element = orderPlacedData.data[index];
+            payload.push({price: parseFloat(element.amount), amount: parseFloat(element.numberOfShares), symbol: data.ticker, side: data.side, newClientOrderId: element.customId, lapiKey: "big70", status: "CANCELLED"});
           }
           await Horder.bulkCreate(payload, {
             validate: true, // Validate each record before insertion
@@ -144,12 +145,16 @@ appEventEmitter.on('CheckOrderBookAndMakeSureThereIsEnoughOrderOnTheSide', async
         if(trader){
         let isSale = data.side == "SELL" ? true : false;
         
-        const activeOrderCount = await OrderPlaced.count({
-            where: { ticker: data.ticker, userAddress: trader.address, isSale:  isSale,
-                [Sequelize.Op.and]: Sequelize.where(Sequelize.col('numberOfShares'), '>', Sequelize.col('filled')),
-            },
-        });
-        let steps = 40 - activeOrderCount;
+        // const activeOrderCount = await OrderPlaced.count({
+        //     where: { ticker: data.ticker, userAddress: trader.address, isSale:  isSale,
+        //         [Sequelize.Op.and]: Sequelize.where(Sequelize.col('numberOfShares'), '>', Sequelize.col('filled')),
+        //     },
+        // });
+        const count = await fetch(`https://backtest.egomart.org/web3/get-all-event-exchange-by-ticker-by-type-user-count?ticker=${data.ticker}&state=OPEN&user=${trader.address}&type=${data.side}`);
+      const countData = await count.json();
+
+        
+        let steps = 40 - parseInt(countData.data);
         if(steps > 0){
             let prices = await generateDescendingPrices(data.newPrice, steps);
             let findAsset = await AssetAdded.findOne({where: {ticker: data.ticker}});

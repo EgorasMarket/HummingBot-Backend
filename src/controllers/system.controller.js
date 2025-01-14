@@ -13,7 +13,7 @@ const { Op, Sequelize } = require('sequelize');
 const ethers = require("ethers");
 require('dotenv/config');
 import databaseConfig from "../config/database";
-import { createOrUpdateBotLastPrice, generatePayload, registerBlock } from '../utils/depth';
+import { createOrUpdateBotLastPrice, generatePayload, generatePrice, getRandomAmount, registerBlock } from '../utils/depth';
 import { v4 } from 'uuid';
 import Horder from '../models/Horder';
 import { ORDER_BOOK_ABI } from '../utils/orderbookabi';
@@ -64,7 +64,7 @@ for (let index = 0; index < pendings.length; index++) {
       let uuid = element.newClientOrderId;
       let isSale = element.side == "SELL" ? 1 : 0;
       let ticker =element.symbol;
-    const signer = new ethers.Wallet(trader.key, providerRPC);
+      const signer = new ethers.Wallet(trader.key, providerRPC);
           const contractRPC = new ethers.Contract(process.env.EXCHANGE_CONTRACT, ABI_DATA,signer);
           const nonce = await providerRPC.getTransactionCount(trader.address, "pending");
           const tx = await contractRPC.cancelOrder(ticker,prices.toString(),isSale,uuid, {
@@ -128,27 +128,177 @@ for (let index = 0; index < pendings.length; index++) {
     }
   },
 
+
+  prepareAndTrade: async (req, res, next) => {
+    try {
+      
+      let person = req.query.person;
+      let type = req.query.type;
+      let ticker = req.query.ticker;
+      
+      console.log(type, person, ticker);
+      if(type ==  "SELL"){
+        const sell = await fetch(`https://backtest.egomart.org/web3/get-all-event-exchange-by-ticker-by-type-asc?ticker=${ticker}&state=OPEN&type=SELL`);
+        const sellData = await sell.json();
+
+        const buy = await fetch(`https://backtest.egomart.org/web3/get-all-event-exchange-by-ticker-by-type-desc?ticker=${ticker}&state=OPEN&type=BUY`);
+        const buyData = await buy.json();
+
+        let thePrice = await generatePrice(parseFloat(buyData.data.amount), parseFloat(sellData.data.amount));
+        if(thePrice > 0){
+          const trader = await Trader.findOne({where: {apikey: person}});
+          if(trader){
+            const signer = new ethers.Wallet(trader.key, providerRPC);
+            const contractRPC = new ethers.Contract(process.env.EXCHANGE_CONTRACT, ABI_DATA,signer);
+            let findAsset = await AssetAdded.findOne({where: {ticker: ticker}});
+            if(findAsset){
+              const tokenAValue = await contractRPC.balances(trader.address, findAsset.tokenA); 
+              let rsABalance = ethers.formatEther(tokenAValue);
+
+              const tokenBValue = await contractRPC.balances(trader.address, findAsset.tokenB); // Assuming is a view function
+              let rsBBalance = ethers.formatEther(tokenBValue);
+
+              console.log(findAsset.tokenAName, ":", rsABalance, findAsset.tokenBName, ":",rsBBalance );
+              let tBAmount = parseFloat(rsBBalance / thePrice);
+              console.log(tBAmount);
+            let tradeableAmount = 0;
+              if(tBAmount <= parseFloat(rsABalance)){
+                tradeableAmount = await getRandomAmount(tBAmount);
+              }else{
+                tradeableAmount = await getRandomAmount(rsABalance);
+
+              }
+             
+
+
+                let multiplier = 1000000000000000000;
+                let prices = [(parseFloat(thePrice) * multiplier).toString()];
+               let  amount = parseFloat(tradeableAmount) * multiplier;
+              
+             
+              const nonce = await providerRPC.getTransactionCount(trader.address, "pending");
+              const tx = await contractRPC.marketOrderTrade(prices,amount.toString(),true,ticker,v4(), {
+                gasLimit: 3000000,
+                nonce:  nonce,// Optional, specify gas limit
+              });
+
+             
+           
+      
+            const nonce2 = await providerRPC.getTransactionCount(trader.address, "pending");
+            const tx2 = await contractRPC.marketOrderTrade(prices,amount.toString(),false,ticker,v4(), {
+              gasLimit: 3000000,
+              nonce:  nonce2,// Optional, specify gas limit
+            });
+
+            
+            }
+            
+            
+      
+        }
+      } 
+      }else if(type ==  "BUY"){
+
+        const sell = await fetch(`https://backtest.egomart.org/web3/get-all-event-exchange-by-ticker-by-type-asc?ticker=${ticker}&state=OPEN&type=SELL`);
+        const sellData = await sell.json();
+
+        const buy = await fetch(`https://backtest.egomart.org/web3/get-all-event-exchange-by-ticker-by-type-desc?ticker=${ticker}&state=OPEN&type=BUY`);
+        const buyData = await buy.json();
+
+        let thePrice = await generatePrice(parseFloat(buyData.data.amount), parseFloat(sellData.data.amount));
+        if(thePrice > 0){
+          const trader = await Trader.findOne({where: {apikey: person}});
+          if(trader){
+            const signer = new ethers.Wallet(trader.key, providerRPC);
+            const contractRPC = new ethers.Contract(process.env.EXCHANGE_CONTRACT, ABI_DATA,signer);
+            let findAsset = await AssetAdded.findOne({where: {ticker: ticker}});
+            if(findAsset){
+              const tokenAValue = await contractRPC.balances(trader.address, findAsset.tokenA); 
+              let rsABalance = ethers.formatEther(tokenAValue);
+
+              const tokenBValue = await contractRPC.balances(trader.address, findAsset.tokenB); // Assuming is a view function
+              let rsBBalance = ethers.formatEther(tokenBValue);
+
+              console.log(findAsset.tokenAName, ":", rsABalance, findAsset.tokenBName, ":",rsBBalance );
+              let tBAmount = parseFloat(rsBBalance / thePrice);
+              console.log(tBAmount);
+            let tradeableAmount = 0;
+              if(tBAmount <= parseFloat(rsABalance)){
+                tradeableAmount = await getRandomAmount(tBAmount);
+              }else{
+                tradeableAmount = await getRandomAmount(rsABalance);
+
+              }
+             
+
+
+                let multiplier = 1000000000000000000;
+                let prices = [(parseFloat(thePrice) * multiplier).toString()];
+               let  amount = parseFloat(tradeableAmount) * multiplier;
+              
+             
+              const nonce = await providerRPC.getTransactionCount(trader.address, "pending");
+              const tx = await contractRPC.marketOrderTrade(prices,amount.toString(),false,ticker,v4(), {
+                gasLimit: 3000000,
+                nonce:  nonce,// Optional, specify gas limit
+              });
+
+             
+           
+      
+            const nonce2 = await providerRPC.getTransactionCount(trader.address, "pending");
+            const tx2 = await contractRPC.marketOrderTrade(prices,amount.toString(),true,ticker,v4(), {
+              gasLimit: 3000000,
+              nonce:  nonce2,// Optional, specify gas limit
+            });
+
+            
+            }
+            
+            
+      
+        }
+      }
+
+      }
+      return res.status(200).json({});
+    } catch (error) {
+      next(error);
+    }
+  },
+
+
   depth: async (req, res, next) => {
     try {
-      await OrderPlaced.destroy({
-        where: {
-          filled: {
-            [Sequelize.Op.gte]: Sequelize.col('numberOfShares'), // 'gte' stands for 'greater than or equal to'
-          },
-        },
-      });
-      const value = await OrderPlaced.findAll({
-        where: {
-          ticker: req.query.symbol,
-          numberOfShares: {
-            [Op.gt]: Sequelize.col('filled')
+      
+      const orderPlaced = await fetch(`https://backtest.egomart.org/web3/get-all-event-exchange-by-ticker?ticker=${req.query.symbol}&state=OPEN&limit=10000`);
+      const orderPlacedData = await orderPlaced.json();
+      let value  = [];
+      if(orderPlacedData.success == true){
+        for (let index = 0; index < orderPlacedData.data.length; index++) {
+          const element = orderPlacedData.data[index];
+          let data = {
+            isSale: element.orderType == "SELL" ? true : false,
+            userAddress: element.userAddress,
+            value: parseFloat(element.amount),
+            numberOfShares: parseFloat(element.numberOfShares),
+            orderId: element.index_id,
+            ticker: element.ticker,
+            uniqueOrderID: element.uniqueOrderID,
+            time: element.timePlaced,
+            uuid: element.customId,
+            filled: parseFloat(element.filled),
           }
-        },
-        order: [['value', 'DESC']],
-      });
+          value.push(data);
+          
+        }
+      }
+     
+
       const ticker = req.query.symbol;
       const limit = req.query.limit;
-      const payload = await generatePayload({ ticker, limit, value});
+       const payload = await generatePayload({ ticker, limit, value});
       return res.status(200).json(payload);
     } catch (error) {
       next(error);

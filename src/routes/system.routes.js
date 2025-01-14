@@ -4,6 +4,8 @@ import systemController from "../controllers/system.controller";
 const hummingRoutes = Router();
 hummingRoutes.get("/api/v3/ping", systemController.ping);
 hummingRoutes.get("/api/v3/depth", systemController.depth);
+hummingRoutes.get("/api/v3/prepare/and/trade", systemController.prepareAndTrade);
+
 hummingRoutes.get("/api/v3/ticker/24hr", systemController.stats);
 hummingRoutes.get("/api/v3/time", systemController.time);
 hummingRoutes.get("/past/events", systemController.pastEvents);
