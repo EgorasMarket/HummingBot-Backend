@@ -13,7 +13,7 @@ const { Op, Sequelize } = require('sequelize');
 const ethers = require("ethers");
 require('dotenv/config');
 import databaseConfig from "../config/database";
-import { createOrUpdateBotLastPrice, generatePayload, generatePrice, getRandomAmount, registerBlock } from '../utils/depth';
+import { createOrUpdateBotLastPrice, generatePayload, generatePrice, getRandomAmount, registerBlock, sleep } from '../utils/depth';
 import { v4 } from 'uuid';
 import Horder from '../models/Horder';
 import { ORDER_BOOK_ABI } from '../utils/orderbookabi';
@@ -183,7 +183,7 @@ for (let index = 0; index < pendings.length; index++) {
               });
 
              
-           
+              await sleep(5000);
       
             const nonce2 = await providerRPC.getTransactionCount(trader.address, "pending");
             const tx2 = await contractRPC.marketOrderTrade(prices,amount.toString(),false,ticker,v4(), {
@@ -245,7 +245,7 @@ for (let index = 0; index < pendings.length; index++) {
               });
 
              
-           
+              await sleep(5000);
       
             const nonce2 = await providerRPC.getTransactionCount(trader.address, "pending");
             const tx2 = await contractRPC.marketOrderTrade(prices,amount.toString(),true,ticker,v4(), {

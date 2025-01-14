@@ -11,7 +11,9 @@ async function getRandomAction() {
   const randomIndex = Math.floor(Math.random() * actions.length);
   return actions[randomIndex];
 }
-
+async function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 async function generatePrice(lowestSellPrice, biggestBuyPrice) {
   return Math.random() * (lowestSellPrice - biggestBuyPrice) + biggestBuyPrice;
 }
@@ -221,4 +223,4 @@ async function generatePayload({ ticker, limit, value }) {
   return payload;
 }
 
-module.exports = {getRandomAmount, generatePayload, createOrUpdateTraderLastPrice, createOrUpdateBotLastPrice, splitAmountIntoFortyParts, generateDescendingPrices, registerBlock, getMiddleNumber, getRandomAction, generatePrice };
+module.exports = {getRandomAmount,sleep, generatePayload, createOrUpdateTraderLastPrice, createOrUpdateBotLastPrice, splitAmountIntoFortyParts, generateDescendingPrices, registerBlock, getMiddleNumber, getRandomAction, generatePrice };
