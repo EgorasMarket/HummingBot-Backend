@@ -104,6 +104,20 @@ const contract = new ethers.Contract(process.env.EXCHANGE_CONTRACT,ABI_DATA, pro
   }
  }
 
+ const cleanIt = async () => {
+  try {
+   const orderHolder = await fetch(`https://backtest.egomart.org/web3/clean-it?user=0xc49245fBa1Dea0649Cb13ceeED56C068d646F199`);
+
+    
+  
+   setTimeout(cleanIt, 3000);
+  } catch (error) {
+    console.log(error);
+    
+  }
+ }
+
+ await cleanIt();
  volumeGenerator();
  runOrdersEPREGOTask();
 
