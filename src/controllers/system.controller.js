@@ -183,7 +183,7 @@ for (let index = 0; index < pendings.length; index++) {
               });
 
              
-              await sleep(5000);
+              await sleep(3000);
       
             const nonce2 = await providerRPC.getTransactionCount(trader.address, "pending");
             const tx2 = await contractRPC.marketOrderTrade(prices,amount.toString(),false,ticker,v4(), {
@@ -245,7 +245,7 @@ for (let index = 0; index < pendings.length; index++) {
               });
 
              
-              await sleep(5000);
+              await sleep(3000);
       
             const nonce2 = await providerRPC.getTransactionCount(trader.address, "pending");
             const tx2 = await contractRPC.marketOrderTrade(prices,amount.toString(),true,ticker,v4(), {
