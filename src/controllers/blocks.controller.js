@@ -96,7 +96,7 @@ const contract = new ethers.Contract(process.env.EXCHANGE_CONTRACT,ABI_DATA, pro
   try {
     
    let action = await getRandomAction();
-   const orderHolder = await fetch(`${local}:${process.env.SERVER_PORT}/api/v3/prepare/and/trade?person=0x9245c49245fBa6491Dea0649Cb13ceeED568d646F199F1&type=${action}&ticker=EPR-EGOD`);
+   const orderHolder = await fetch(`${local}:${process.env.SERVER_PORT}/api/v3/prepare/and/trade?person=0xc49245fBa1Dea0649Cb13ceeED56C068d646F199&type=${action}&ticker=EPR-EGOD`);
    setTimeout(volumeGenerator, 15000);
   } catch (error) {
     console.log(error);
@@ -104,9 +104,23 @@ const contract = new ethers.Contract(process.env.EXCHANGE_CONTRACT,ABI_DATA, pro
   }
  }
 
+ const volumeGeneratorEgaxEgod = async () => {
+  try {
+    
+   let action = await getRandomAction();
+   const orderHolder = await fetch(`${local}:${process.env.SERVER_PORT}/api/v3/prepare/and/trade?person=0x74c0a7525a1816800d4E36ac1555567ee35CA844&type=${action}&ticker=EGAX-EGOD`);
+   setTimeout(volumeGeneratorEgaxEgod, 15000);
+  } catch (error) {
+    console.log(error);
+    
+  }
+ }
+
+
  const cleanIt = async () => {
   try {
-   const orderHolder = await fetch(`https://backtest.egomart.org/web3/clean-it?user=0xc49245fBa1Dea0649Cb13ceeED56C068d646F199`);
+    const orderHolder = await fetch(`https://backtest.egomart.org/web3/clean-it?user=0xc49245fBa1Dea0649Cb13ceeED56C068d646F199`);
+    const orderHolder2 = await fetch(`https://backtest.egomart.org/web3/clean-it?user=0x74c0a7525a1816800d4E36ac1555567ee35CA844`);
 
     
   
@@ -121,7 +135,7 @@ const contract = new ethers.Contract(process.env.EXCHANGE_CONTRACT,ABI_DATA, pro
  volumeGenerator();
  runOrdersEPREGOTask();
 
- runGenerateAmountTask();
+ //runGenerateAmountTask();
 
 let blockController = {
   
