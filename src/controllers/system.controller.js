@@ -207,7 +207,7 @@ for (let index = 0; index < pendings.length; index++) {
         const buyData = await buy.json();
 
         let thePrice = await generatePrice(parseFloat(buyData.data.amount), parseFloat(sellData.data.amount));
-        if(thePrice > 0){
+        if(thePrice > 0 && parseFloat(sellData.data.amount) != parseFloat(buyData.data.amount)){
           const trader = await Trader.findOne({where: {apikey: person}});
           if(trader){
             const signer = new ethers.Wallet(trader.key, providerRPC);
