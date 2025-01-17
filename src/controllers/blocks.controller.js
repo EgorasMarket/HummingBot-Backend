@@ -134,7 +134,7 @@ const contract = new ethers.Contract(process.env.EXCHANGE_CONTRACT,ABI_DATA, pro
   cleanIt();
  volumeGenerator();
  runOrdersEPREGOTask();
-
+ volumeGeneratorEgaxEgod();
  //runGenerateAmountTask();
 
 let blockController = {
