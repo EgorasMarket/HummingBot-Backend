@@ -197,6 +197,8 @@ for (let index = 0; index < pendings.length; index++) {
             
       
         }
+      }else{
+        console.log("parseFloat(sellData.data.amount):", parseFloat(sellData.data.amount),  "parseFloat(buyData.data.amount):", parseFloat(buyData.data.amount))
       } 
       }else if(type ==  "BUY"){
 
@@ -260,6 +262,9 @@ for (let index = 0; index < pendings.length; index++) {
       
         }
       }
+
+      }else{
+        console.log("parseFloat(sellData.data.amount):", parseFloat(sellData.data.amount),  "parseFloat(buyData.data.amount):", parseFloat(buyData.data.amount))
 
       }
       return res.status(200).json({});
