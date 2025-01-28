@@ -104,6 +104,18 @@ const contract = new ethers.Contract(process.env.EXCHANGE_CONTRACT,ABI_DATA, pro
   }
  }
 
+ const volumeGenerator2 = async () => {
+  try {
+    
+   let action = await getRandomAction();
+   const orderHolder = await fetch(`${local}:${process.env.SERVER_PORT}/api/v3/prepare/and/trade?person=0x9245c49245fBa6491Dea0649Cb13ceeED568d646F199F1&type=${action}&ticker=EPR-EGOD`);
+   setTimeout(volumeGenerator2, 15000);
+  } catch (error) {
+    console.log(error);
+    
+  }
+ }
+
  const volumeGeneratorEgaxEgod = async () => {
   try {
     
