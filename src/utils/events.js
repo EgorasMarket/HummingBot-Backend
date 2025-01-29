@@ -27,18 +27,25 @@ appEventEmitter.on('error', (err) => {
   });
 
   appEventEmitter.on('fillUpOrderBook', async (data)  => {
+    console.log("fillUpOrderBook");
    try {
     let  checkForOrder = await Horder.findOne({where: {symbol: data.ticker, side: data.side}});
     if(checkForOrder){}else{
-      
-    let prices = await generateDescendingPrices(data.newPrice, 40);
+      const trader = await Trader.findOne({where: {apikey: data.apikey}});
+      const count = await fetch(`https://backtest.egomart.org/web3/get-all-event-exchange-by-ticker-by-type-user-count?ticker=${data.ticker}&state=OPEN&user=${trader.address}&type=${data.side}`);
+      const countData = await count.json();
+
+        
+        let steps = 40 - parseInt(countData.data);
+       
+    let prices = await generateDescendingPrices(data.newPrice, steps);
     console.log(prices)
     let findAsset = await AssetAdded.findOne({where: {ticker: data.ticker}});
     
     if(findAsset){
       
         if(data.side == "SELL"){
-            const trader = await Trader.findOne({where: {apikey: "big70"}});
+            const trader = await Trader.findOne({where: {apikey: data.apikey}});
             if(trader){
                 const value = await contractRPC.balances(trader.address, findAsset.tokenA); // Assuming is a view function
                 let rsBalance = ethers.formatEther(value);
@@ -47,7 +54,7 @@ appEventEmitter.on('error', (err) => {
                     let amounts = await splitAmountIntoFortyParts(tradeable, 40);
                     let payload = [];
                     for (let index = 0; index < prices.length; index++) {
-                        payload.push({price: prices[index], amount: amounts[index], symbol: data.ticker, side: data.side, newClientOrderId: v4(), lapiKey: "big70", status: "OPEN"});
+                        payload.push({price: prices[index], amount: amounts[index], symbol: data.ticker, side: data.side, newClientOrderId: v4(), lapiKey: data.apikey, status: "OPEN"});
                     }
                     await Horder.bulkCreate(payload, {
                         validate: true, // Validate each record before insertion
@@ -60,7 +67,7 @@ appEventEmitter.on('error', (err) => {
             }
             
         }else{
-            const trader = await Trader.findOne({where: {apikey: "big70"}});
+            const trader = await Trader.findOne({where: {apikey: data.apikey}});
             if(trader){
                 const value = await contractRPC.balances(trader.address, findAsset.tokenB); // Assuming is a view function
                 let rsBalance = ethers.formatEther(value);
@@ -71,7 +78,7 @@ appEventEmitter.on('error', (err) => {
 
                     let payload = [];
                     for (let index = 0; index < prices.length; index++) {
-                        payload.push({price: prices[index], amount: amounts[index], symbol: data.ticker, side: data.side, newClientOrderId: v4(), lapiKey: "big70", status: "OPEN"});
+                        payload.push({price: prices[index], amount: amounts[index], symbol: data.ticker, side: data.side, newClientOrderId: v4(), lapiKey: data.apikey, status: "OPEN"});
                     }
                     await Horder.bulkCreate(payload, {
                         validate: true, // Validate each record before insertion
@@ -103,11 +110,11 @@ appEventEmitter.on('CancelTrade', async (data)  => {
   console.log(data)
 });
 appEventEmitter.on('CheckOrderBookAndMakeTheBestDecision', async (data)  => {
-
+  console.log("CheckOrderBookAndMakeTheBestDecision This where i landed");
     try {
         let  checkForOrder = await Horder.findOne({where: {symbol: data.ticker, side: data.side}});
     if(checkForOrder){}else{
-        const trader = await Trader.findOne({where: {apikey: "big70"}});
+        const trader = await Trader.findOne({where: {apikey: data.apikey}});
         let isSale = data.side == "SELL" ? true : false;
         const orderPlaced = await fetch(`https://backtest.egomart.org/web3/get-all-event-exchange-by-ticker-by-type-user?ticker=${data.ticker}&state=OPEN&user=${trader.address}&type=${data.side}&limit=1000`);
         const orderPlacedData = await orderPlaced.json();
@@ -121,7 +128,7 @@ appEventEmitter.on('CheckOrderBookAndMakeTheBestDecision', async (data)  => {
                        
         for (let index = 0; index < orderPlacedData.data.length; index++) {
             const element = orderPlacedData.data[index];
-            payload.push({price: parseFloat(element.amount), amount: parseFloat(element.numberOfShares), symbol: data.ticker, side: data.side, newClientOrderId: element.customId, lapiKey: "big70", status: "CANCELLED"});
+            payload.push({price: parseFloat(element.amount), amount: parseFloat(element.numberOfShares), symbol: data.ticker, side: data.side, newClientOrderId: element.customId, lapiKey: data.apikey, status: "CANCELLED"});
           }
           await Horder.bulkCreate(payload, {
             validate: true, // Validate each record before insertion
@@ -138,10 +145,11 @@ appEventEmitter.on('CheckOrderBookAndMakeTheBestDecision', async (data)  => {
 });
 
 appEventEmitter.on('CheckOrderBookAndMakeSureThereIsEnoughOrderOnTheSide', async (data)  => {
+  console.log("CheckOrderBookAndMakeSureThereIsEnoughOrderOnTheSide This where i landed");
   try {
     let  checkForOrder = await Horder.findOne({where: {symbol: data.ticker, side: data.side}});
     if(checkForOrder){}else{
-        const trader = await Trader.findOne({where: {apikey: "big70"}});
+        const trader = await Trader.findOne({where: {apikey: data.apikey}});
         if(trader){
         let isSale = data.side == "SELL" ? true : false;
         
@@ -160,7 +168,7 @@ appEventEmitter.on('CheckOrderBookAndMakeSureThereIsEnoughOrderOnTheSide', async
             let findAsset = await AssetAdded.findOne({where: {ticker: data.ticker}});
            if (findAsset) {
             if(data.side == "SELL"){
-                const trader = await Trader.findOne({where: {apikey: "big70"}});
+                const trader = await Trader.findOne({where: {apikey: data.apikey}});
                 if(trader){
                     const value = await contractRPC.balances(trader.address, findAsset.tokenA); // Assuming is a view function
                     let rsBalance = ethers.formatEther(value);
@@ -169,7 +177,7 @@ appEventEmitter.on('CheckOrderBookAndMakeSureThereIsEnoughOrderOnTheSide', async
                         let amounts = await splitAmountIntoFortyParts(tradeable, steps);
                         let payload = [];
                         for (let index = 0; index < prices.length; index++) {
-                            payload.push({price: prices[index], amount: amounts[index], symbol: data.ticker, side: data.side, newClientOrderId: v4(), lapiKey: "big70", status: "OPEN"});
+                            payload.push({price: prices[index], amount: amounts[index], symbol: data.ticker, side: data.side, newClientOrderId: v4(), lapiKey: data.apikey, status: "OPEN"});
                         }
                         await Horder.bulkCreate(payload, {
                             validate: true, // Validate each record before insertion
@@ -182,7 +190,7 @@ appEventEmitter.on('CheckOrderBookAndMakeSureThereIsEnoughOrderOnTheSide', async
                 }
                 
             }else{
-                const trader = await Trader.findOne({where: {apikey: "big70"}});
+                const trader = await Trader.findOne({where: {apikey: data.apikey}});
                 if(trader){
                     const value = await contractRPC.balances(trader.address, findAsset.tokenB); // Assuming is a view function
                     let rsBalance = ethers.formatEther(value);
@@ -193,7 +201,7 @@ appEventEmitter.on('CheckOrderBookAndMakeSureThereIsEnoughOrderOnTheSide', async
     
                         let payload = [];
                         for (let index = 0; index < prices.length; index++) {
-                            payload.push({price: prices[index], amount: amounts[index], symbol: data.ticker, side: data.side, newClientOrderId: v4(), lapiKey: "big70", status: "OPEN"});
+                            payload.push({price: prices[index], amount: amounts[index], symbol: data.ticker, side: data.side, newClientOrderId: v4(), lapiKey: data.apikey, status: "OPEN"});
                         }
                         await Horder.bulkCreate(payload, {
                             validate: true, // Validate each record before insertion

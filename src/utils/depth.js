@@ -97,26 +97,39 @@ async function generateDescendingPrices(startPrice, steps) {
     return Array.from(prices).sort((a, b) => b - a);
 }
 
+
+
+
 async function splitAmountIntoFortyParts(totalAmount, steps) {
   const parts = [];
-    let remainingAmount = totalAmount;
+  let remainingAmount = totalAmount;
 
-    for (let i = 0; i < steps - 1; i++) {
-        // Ensure each part is at least a small positive value
-        const minPart = 0.01; 
-        const maxPart = (remainingAmount - (steps - 1 - i) * minPart) / (steps - i);
+  for (let i = 0; i < steps - 1; i++) {
+      const minPart = 1.5; 
+      let maxPart = (remainingAmount - (steps - 1 - i) * minPart) / (steps - i);
 
-        // Generate a random part between minPart and maxPart
-        const part = parseFloat((Math.random() * (maxPart - minPart) + minPart).toFixed(2));
-        parts.push(part);
-        remainingAmount -= part;
-    }
+      // Ensure maxPart is never lower than minPart
+      maxPart = Math.max(minPart, maxPart);
 
-    // Add the remaining amount as the last part
-    parts.push(parseFloat(remainingAmount.toFixed(2)));
+      // Generate a random part between minPart and maxPart
+      const part = parseFloat((Math.random() * (maxPart - minPart) + minPart).toFixed(2));
 
-    return parts;
+      parts.push(part);
+      remainingAmount -= part;
+
+      // Prevent the remaining amount from going negative
+      if (remainingAmount < minPart * (steps - 1 - i)) {
+          remainingAmount = minPart * (steps - 1 - i);
+      }
+  }
+
+  // Add the remaining amount as the last part
+  parts.push(parseFloat(remainingAmount.toFixed(2)));
+
+ 
+  return parts;
 }
+
 
 async function getOpenTrades({ticker, side}) {
   let getTrade = await Trader.findOne({where: {apikey: "big70"}});

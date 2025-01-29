@@ -42,20 +42,13 @@ const contract = new ethers.Contract(process.env.EXCHANGE_CONTRACT,ABI_DATA, pro
 let systemController = {
   spin: async (req, res, next) => {
     try {
-
-//  await createOrUpdateBotLastPrice({ticker: "EPR-EGOD", newPrice:0.345,side: "BUY"});
-    
-
-//  // appEventEmitter.emit("CheckOrderBookAndMakeSureThereIsEnoughOrderOnTheSide", {ticker: "EPR-EGOD", newPrice:0.344,side: "SELL"});
-//      appEventEmitter.emit("BotPlacedOrder", {ticker: "EPR-EGOD", newPrice:0.345,side: "BUY"});
-   
 let pendings = await Horder.findAll();
 //console.log(pendings);
 
 for (let index = 0; index < pendings.length; index++) {
   const element = pendings[index];
   if(element.status == "CANCELLED"){
-    const trader = await Trader.findOne({where: {apikey: "big70"}});
+    const trader = await Trader.findOne({where: {apikey: element.lapiKey}});
     if(trader){
 
       let price = element.price;
@@ -77,7 +70,7 @@ for (let index = 0; index < pendings.length; index++) {
 
   } 
     else if(element.status == "OPEN"){
-      const trader = await Trader.findOne({where: {apikey: "big70"}});
+      const trader = await Trader.findOne({where: {apikey: element.lapiKey}});
       if(trader){
     let price = parseFloat(element.price);
     let amount = parseFloat(element.amount);

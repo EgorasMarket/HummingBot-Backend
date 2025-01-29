@@ -32,26 +32,11 @@ const contract = new ethers.Contract(process.env.EXCHANGE_CONTRACT,ABI_DATA, pro
   local = "http://localhost";
 
  }
- const runTasks = async () => {
-  
-  try {
-   const orderPlaced = await fetch(`${local}:${process.env.SERVER_PORT}/past/events?event=OrderPlaced`);
-  
-    const trade = await fetch(`${local}:${process.env.SERVER_PORT}/past/events?event=Trade`);
-   const orderCanceled = await fetch(`${local}:${process.env.SERVER_PORT}/past/events?event=OrderCanceled`);
-
-  // const orderPlacedData = await orderPlaced.json();
-  } catch (error) {
-    console.log(error);
-  }
-  setTimeout(runTasks, 3000);
- }
 
  
 
 
- //runTasks();
- const runGenerateAmountTask = async () => {
+ const spinTask = async () => {
   try {
     const orderHolder = await fetch(`${local}:${process.env.SERVER_PORT}/api/v3/blockchain/spin`);
    
@@ -63,9 +48,10 @@ const contract = new ethers.Contract(process.env.EXCHANGE_CONTRACT,ABI_DATA, pro
   }
  }
 
- const runOrdersEPREGOTask = async () => {
+ const runOrdersEPREGOTask = async (ticker, apikey) => {
   try {
-    const orderHolder = await fetch(`${local}:${process.env.SERVER_PORT}/api/v3/depth?symbol=EPR-EGOD&limit=1000`);
+ 
+    const orderHolder = await fetch(`${local}:${process.env.SERVER_PORT}/api/v3/depth?symbol=${ticker}&limit=1000`);
     const orderHolderData = await orderHolder.json();
     
     let bidPrices = [];
@@ -80,48 +66,35 @@ const contract = new ethers.Contract(process.env.EXCHANGE_CONTRACT,ABI_DATA, pro
     }
    let bidmid = await getMiddleNumber(bidPrices);
    let askmid =  await getMiddleNumber(askPrices);
-   await createOrUpdateBotLastPrice({ticker: "EPR-EGOD", newPrice:bidmid,side: "BUY"})
-   appEventEmitter.emit("BotPlacedOrder", {ticker: "EPR-EGOD", newPrice:bidmid,side: "BUY"});
-   await createOrUpdateBotLastPrice({ticker: "EPR-EGOD", newPrice:askmid,side: "SELL"})
-   appEventEmitter.emit("BotPlacedOrder", {ticker: "EPR-EGOD", newPrice:askmid,side: "SELL"});
+   await createOrUpdateBotLastPrice({ticker: ticker, newPrice:bidmid,side: "BUY"})
+   appEventEmitter.emit("BotPlacedOrder", {ticker: ticker, newPrice:bidmid,side: "BUY", apikey: apikey});
+   await createOrUpdateBotLastPrice({ticker: ticker, newPrice:askmid,side: "SELL"})
+   appEventEmitter.emit("BotPlacedOrder", {ticker:ticker, newPrice:askmid,side: "SELL", apikey: apikey});
 
-  setTimeout(runOrdersEPREGOTask, 15000);
+
   } catch (error) {
     console.log(error);
     
   }
  }
 
- const volumeGenerator = async () => {
+ 
+
+ const putVolume = async (apikey, ticker) => {
   try {
     
    let action = await getRandomAction();
-   const orderHolder = await fetch(`${local}:${process.env.SERVER_PORT}/api/v3/prepare/and/trade?person=0x9245c49245fBa6491Dea0649Cb13ceeED568d646F199F1&type=${action}&ticker=EPR-EGOD`);
-   setTimeout(volumeGenerator, 15000);
+   const orderHolder = await fetch(`${local}:${process.env.SERVER_PORT}/api/v3/prepare/and/trade?person=${apikey}&type=${action}&ticker=${ticker}`);
   } catch (error) {
     console.log(error);
     
   }
  }
 
- const volumeGenerator2 = async () => {
+ const volumeEPREGOD = async () => {
   try {
-    
-   let action = await getRandomAction();
-   const orderHolder = await fetch(`${local}:${process.env.SERVER_PORT}/api/v3/prepare/and/trade?person=0x9245c49245fBa6491Dea0649Cb13ceeED568d646F199F1&type=${action}&ticker=EPR-EGOD`);
-   setTimeout(volumeGenerator2, 15000);
-  } catch (error) {
-    console.log(error);
-    
-  }
- }
-
- const volumeGeneratorEgaxEgod = async () => {
-  try {
-    
-   let action = await getRandomAction();
-   const orderHolder = await fetch(`${local}:${process.env.SERVER_PORT}/api/v3/prepare/and/trade?person=0x74c0a00d4E7525a1816800d4E36ac1567ee35CA844&type=${action}&ticker=EGAX-EGOD`);
-   setTimeout(volumeGeneratorEgaxEgod, 15000);
+    await putVolume("0x9245c49245fBa6491Dea0649Cb13ceeED568d646F199F1", "EPR-EGOD");
+   setTimeout(volumeEPREGOD, 15000);
   } catch (error) {
     console.log(error);
     
@@ -129,26 +102,47 @@ const contract = new ethers.Contract(process.env.EXCHANGE_CONTRACT,ABI_DATA, pro
  }
 
 
- const cleanIt = async () => {
+ const volumeEGAXEGOD = async () => {
   try {
-    const orderHolder = await fetch(`https://backtest.egomart.org/web3/clean-it?user=0xc49245fBa1Dea0649Cb13ceeED56C068d646F199`);
-    const orderHolder2 = await fetch(`https://backtest.egomart.org/web3/clean-it?user=0x74c0a7525a1816800d4E36ac1555567ee35CA844`);
+    await putVolume("0x74c0a00d4E7525a1816800d4E36ac1567ee35CA844", "EGAX-EGOD");
+   setTimeout(volumeEGAXEGOD, 15000);
+  } catch (error) {
+    console.log(error);
+    
+  }
+ }
+
+
+
+
+//  const cleanIt = async () => {
+//   try {
+//     const orderHolder = await fetch(`https://backtest.egomart.org/web3/clean-it?user=0xc49245fBa1Dea0649Cb13ceeED56C068d646F199`);
+//     const orderHolder2 = await fetch(`https://backtest.egomart.org/web3/clean-it?user=0x74c0a7525a1816800d4E36ac1555567ee35CA844`);
 
     
   
-   setTimeout(cleanIt, 3000);
+//    setTimeout(cleanIt, 3000);
+//   } catch (error) {
+//     console.log(error);
+    
+//   }
+//  }
+
+ const EPREGOD = async () => {
+  try {
+    await runOrdersEPREGOTask("EPR-EGOD", "big70");
+   setTimeout(EPREGOD, 15000);
   } catch (error) {
     console.log(error);
     
   }
  }
 
-  cleanIt();
- volumeGenerator();
- runOrdersEPREGOTask();
- volumeGeneratorEgaxEgod();
- //runGenerateAmountTask();
-
+ EPREGOD();
+ volumeEPREGOD();
+ volumeEGAXEGOD();
+ spinTask();
 let blockController = {
   
   getBlockchainOrderBook: async (req, res, next) => {
