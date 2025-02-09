@@ -13,7 +13,7 @@ const { Op, Sequelize } = require('sequelize');
 const ethers = require("ethers");
 require('dotenv/config');
 import databaseConfig from "../config/database";
-import { createOrUpdateBotLastPrice, generatePayload, generatePrice, getRandomAmount, registerBlock, sleep } from '../utils/depth';
+import { createOrUpdateBotLastPrice, generatePayload, generatePrice, getRandomAmount, isOrderOlderThan20Seconds, registerBlock, sleep } from '../utils/depth';
 import { v4 } from 'uuid';
 import Horder from '../models/Horder';
 import { ORDER_BOOK_ABI } from '../utils/orderbookabi';
@@ -40,6 +40,65 @@ const contract = new ethers.Contract(process.env.EXCHANGE_CONTRACT,ABI_DATA, pro
 //connectWebSocket();
 
 let systemController = {
+  clearTradeConflits: async (req, res, next) => {
+    try {
+      let userAddress = req.query.address;
+      let ticker = req.query.ticker;
+      let state = "OPEN";
+      console.log(userAddress);
+      const orders = await fetch(`https://backtest.egomart.org/web3/get-all-event-exchange-by-ticker-user?ticker=${ticker}&state=${state}&user=${userAddress}&limit=1000`);
+      const ordersResult = await orders.json();
+      if(ordersResult.success == true){
+        const trader = await Trader.findOne({where: {address: userAddress}});
+        if(trader){
+          for (let index = 0; index < ordersResult.data.length; index++) {
+            console.log("---------ordersResult.data.length---------:",ordersResult.data.length)
+            const element = ordersResult.data[index];
+            if(isOrderOlderThan20Seconds(element.timePlaced, 20)){
+              console.log(element.timePlaced);
+              console.log("---------element.timePlaced---------")
+              let price = element.amount;
+              let multiplier = 1000000000000000000;
+              let prices = (parseFloat(price) * multiplier).toString();
+              let uuid = element.customId;
+              let isSale = element.orderType == "SELL" ? 1 : 0;
+              let ticker =element.ticker;
+              const signer = new ethers.Wallet(trader.key, providerRPC);
+                  const contractRPC = new ethers.Contract(process.env.EXCHANGE_CONTRACT, ABI_DATA,signer);
+                  const nonce = await providerRPC.getTransactionCount(trader.address, "pending");
+                  const tx = await contractRPC.cancelOrder(ticker,prices.toString(),isSale,uuid, {
+                    gasLimit: 3000000,
+                    nonce:  nonce,// Optional, specify gas limit
+                  });
+
+               
+      const clean = await fetch(`https://backtest.egomart.org/web3/clean/orders/v2?ticker=${ticker}&id=${element.customId}&user=${userAddress}&limit=1000`);
+      const cleanResult = await clean.json();
+
+      console.log(cleanResult);
+
+            }
+            
+            
+           
+
+                await sleep(100);
+
+
+
+            
+          }
+         
+        }
+
+        // console.log(ordersResult);
+      }
+      return res.status(200).json({});
+    } catch (error) {
+      console.log(error)
+      next(error);
+    }
+  },
   spin: async (req, res, next) => {
     try {
 let pendings = await Horder.findAll();
@@ -176,7 +235,7 @@ for (let index = 0; index < pendings.length; index++) {
               });
 
              
-              await sleep(3000);
+              await sleep(7000);
       
             const nonce2 = await providerRPC.getTransactionCount(trader.address, "pending");
             const tx2 = await contractRPC.marketOrderTrade(prices,amount.toString(),false,ticker,v4(), {
@@ -240,7 +299,7 @@ for (let index = 0; index < pendings.length; index++) {
               });
 
              
-              await sleep(3000);
+              await sleep(7000);
       
             const nonce2 = await providerRPC.getTransactionCount(trader.address, "pending");
             const tx2 = await contractRPC.marketOrderTrade(prices,amount.toString(),true,ticker,v4(), {

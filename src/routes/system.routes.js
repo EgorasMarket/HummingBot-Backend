@@ -19,6 +19,7 @@ hummingRoutes.delete("/api/v3/order", systemController.delete);
 hummingRoutes.put("/api/v3/userDataStream", systemController.userDataStreamPut);
 hummingRoutes.delete("/api/v3/userDataStream", systemController.userDataStreamPut);
 hummingRoutes.get("/api/v3/blockchain/spin", systemController.spin);
+hummingRoutes.get("/api/v3/blockchain/clearTradeConflits", systemController.clearTradeConflits);
 
 
 

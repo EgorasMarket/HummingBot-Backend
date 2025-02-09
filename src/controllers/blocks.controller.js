@@ -41,7 +41,7 @@ const contract = new ethers.Contract(process.env.EXCHANGE_CONTRACT,ABI_DATA, pro
     const orderHolder = await fetch(`${local}:${process.env.SERVER_PORT}/api/v3/blockchain/spin`);
    
     
-  setTimeout(runGenerateAmountTask, 3000);
+  setTimeout(spinTask, 3000);
   } catch (error) {
     console.log(error);
     
@@ -112,9 +112,16 @@ const contract = new ethers.Contract(process.env.EXCHANGE_CONTRACT,ABI_DATA, pro
   }
  }
 
+ 
+ const cleanEGODEPR = async () => {
+     const orderHolder = await fetch("http://localhost:666/api/v3/blockchain/clearTradeConflits?address=0xc49245fBa1Dea0649Cb13ceeED56C068d646F199&ticker=EPR-EGOD");
+     setTimeout(cleanEGODEPR, 15000);
+ }
 
-
-
+ const cleanEGODEGAX = async () => {
+  const orderHolder = await fetch("http://localhost:666/api/v3/blockchain/clearTradeConflits?address=0x74c0a7525a1816800d4E36ac1555567ee35CA844&ticker=EGAX-EGOD");
+  setTimeout(cleanEGODEGAX, 15000);
+}
 //  const cleanIt = async () => {
 //   try {
 //     const orderHolder = await fetch(`https://backtest.egomart.org/web3/clean-it?user=0xc49245fBa1Dea0649Cb13ceeED56C068d646F199`);
@@ -138,11 +145,12 @@ const contract = new ethers.Contract(process.env.EXCHANGE_CONTRACT,ABI_DATA, pro
     
   }
  }
-
- EPREGOD();
- volumeEPREGOD();
- volumeEGAXEGOD();
- spinTask();
+ cleanEGODEGAX();
+ cleanEGODEPR()
+  EPREGOD();
+  volumeEPREGOD();
+//  volumeEGAXEGOD();
+  spinTask();
 let blockController = {
   
   getBlockchainOrderBook: async (req, res, next) => {

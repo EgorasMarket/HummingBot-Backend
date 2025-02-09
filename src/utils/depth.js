@@ -6,6 +6,12 @@ const { default: TraderLastPrice } = require("../models/TraderLastPrice");
 const { default: Trader } = require("../models/Trader");
 const { default: Block } = require("../models/Block");
 
+async function isOrderOlderThan20Seconds(orderTimestamp, seconds) {
+  const orderTime = new Date(orderTimestamp);
+  const now = new Date();
+  const differenceInSeconds = (now - orderTime) / 1000;
+  return differenceInSeconds > seconds;
+}
 async function getRandomAction() {
   const actions = ["BUY", "SELL"];
   const randomIndex = Math.floor(Math.random() * actions.length);
@@ -15,7 +21,9 @@ async function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 async function generatePrice(lowestSellPrice, biggestBuyPrice) {
-  return Math.random() * (lowestSellPrice - biggestBuyPrice) + biggestBuyPrice;
+  const maxVariation = biggestBuyPrice * 0.005; // 0.5% of lowest sell order price
+  const randomOffset = Math.random() * maxVariation; // Random value within range
+  return (biggestBuyPrice - randomOffset).toFixed(2);
 }
 async function getRandomAmount(balance, percentage = 15) {
   if (balance <= 0 || percentage <= 0) {
@@ -236,4 +244,4 @@ async function generatePayload({ ticker, limit, value }) {
   return payload;
 }
 
-module.exports = {getRandomAmount,sleep, generatePayload, createOrUpdateTraderLastPrice, createOrUpdateBotLastPrice, splitAmountIntoFortyParts, generateDescendingPrices, registerBlock, getMiddleNumber, getRandomAction, generatePrice };
+module.exports = {getRandomAmount,sleep, generatePayload, createOrUpdateTraderLastPrice, createOrUpdateBotLastPrice, splitAmountIntoFortyParts, generateDescendingPrices, registerBlock, getMiddleNumber, getRandomAction, generatePrice, isOrderOlderThan20Seconds };
