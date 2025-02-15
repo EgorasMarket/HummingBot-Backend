@@ -196,7 +196,7 @@ for (let index = 0; index < pendings.length; index++) {
         const buy = await fetch(`https://backtest.egomart.org/web3/get-all-event-exchange-by-ticker-by-type-desc?ticker=${ticker}&state=OPEN&type=BUY`);
         const buyData = await buy.json();
 
-        let thePrice = await generatePrice(parseFloat(buyData.data.amount), parseFloat(sellData.data.amount));
+        let thePrice = await generatePrice(parseFloat(buyData.data.amount), parseFloat(sellData.data.amount), ticker);
         if(thePrice > 0 && parseFloat(sellData.data.amount) != parseFloat(buyData.data.amount)){
           const trader = await Trader.findOne({where: {apikey: person}});
           if(trader){
@@ -260,7 +260,7 @@ for (let index = 0; index < pendings.length; index++) {
         const buy = await fetch(`https://backtest.egomart.org/web3/get-all-event-exchange-by-ticker-by-type-desc?ticker=${ticker}&state=OPEN&type=BUY`);
         const buyData = await buy.json();
 
-        let thePrice = await generatePrice(parseFloat(buyData.data.amount), parseFloat(sellData.data.amount));
+        let thePrice = await generatePrice(parseFloat(buyData.data.amount), parseFloat(sellData.data.amount), ticker);
         if(thePrice > 0 && parseFloat(sellData.data.amount) != parseFloat(buyData.data.amount)){
           const trader = await Trader.findOne({where: {apikey: person}});
           if(trader){

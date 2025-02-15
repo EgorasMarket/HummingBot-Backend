@@ -5,6 +5,7 @@ const { default: BotLastPrice } = require("../models/BotLastPrice");
 const { default: TraderLastPrice } = require("../models/TraderLastPrice");
 const { default: Trader } = require("../models/Trader");
 const { default: Block } = require("../models/Block");
+const snakePriceManager = require("./generator");
 
 async function isOrderOlderThan20Seconds(orderTimestamp, seconds) {
   const orderTime = new Date(orderTimestamp);
@@ -31,10 +32,11 @@ let arrayOfPercentages = [
   0.002, 0.0019, 0.0018, 0.0017, 0.0016, 0.0015, 0.0014, 0.0013, 0.0012, 0.0011,
   0.001, 0.0009, 0.0008, 0.0007, 0.0006, 0.0005, 0.0004, 0.0003, 0.0002, 0.0001
 ];
-async function generatePrice(lowestSellPrice, biggestBuyPrice) {
-  const maxVariation = biggestBuyPrice * arrayOfPercentages[Math.floor(Math.random() * 101)]; // 0.5% of lowest sell order price
-  const randomOffset = Math.random() * maxVariation; // Random value within range
-  return (biggestBuyPrice - randomOffset).toFixed(2);
+async function generatePrice(lowestSellPrice, biggestBuyPrice, ticker) {
+  // const maxVariation = biggestBuyPrice * arrayOfPercentages[Math.floor(Math.random() * 101)]; // 0.5% of lowest sell order price
+  // const randomOffset = Math.random() * maxVariation; // Random value within range
+  // return (biggestBuyPrice - randomOffset).toFixed(2);
+  return snakePriceManager.handleTicker(ticker, lowestSellPrice, biggestBuyPrice, 60)
 }
 async function getRandomAmount(balance, percentage = 15) {
   if (balance <= 0 || percentage <= 0) {
